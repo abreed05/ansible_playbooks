@@ -1,0 +1,46 @@
+---
+
+# A playbook to configure jenkins on AWS using Ubuntu 18.04. 
+# Install all dependencies and install jenkins. Copies inital
+# password file to local machine. 
+
+
+- hosts: jenkins
+  become: true
+  vars:
+    ansible_ssh_private_key_file: "docker01phqd.pem"
+    ansible_user: ubuntu
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+    - name: Update APT cache
+      become: true
+      apt:
+        update_cache: yes
+    
+    - name: Install OpenJDK Java
+      become: true
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+              openjdk-8-jdk
+        
+    - name: Add Jenkins Apt Repository key
+      apt_key: url=https://pkg.jenkins.io/debian-stable/jenkins.io.key state=present
+      become: true
+
+    - name: Ensure the repository is configured
+      apt_repository: repo='deb https://pkg.jenkins.io/debian-stable binary/' state=present update_cache=yes
+      become: true
+
+    - name: Install Jenkins
+      apt: name=jenkins update_cache=yes
+      become: true
+
+    - name: Start Jenkins
+      service: name=jenkins state=started
+
+    - name: Fetch Jenkins Admin Password
+      fetch:
+              src: /var/lib/jenkins/secrets/initialAdminPassword
+              dest: ~/devops/jenkins/initalAdminPassword

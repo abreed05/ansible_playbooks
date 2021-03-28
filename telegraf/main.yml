@@ -1,0 +1,35 @@
+---
+- hosts: proxmox
+  become: true
+  
+  tasks:
+    - name: Add InfluxDB apt key
+      apt_key:
+        url: https://repos.influxdata.com/influxdb.key
+        state: present
+
+    - name: Add InfluxDB repository
+      apt_repository:
+        repo: deb https://repos.influxdata.com/debian buster stable
+        state: present
+        filename: influxdb.list
+
+    - name: Update APT cache and install telegraf
+      apt:
+        name: telegraf
+        update_cache: yes
+        
+    - name: Move Telegraf config file 
+      command: mv /etc/telegraf/telegraf.conf /etc/telegraf/telegraf.conf.default
+
+    - name: Copy Telegraf Template 
+      template:
+        src: telegraf.conf.j2
+        dest: /etc/telegraf/telegraf.conf
+
+    - name: Start and Enable Telegraf
+      systemd:
+        name: telegraf
+        state: started
+        enabled: yes
+      

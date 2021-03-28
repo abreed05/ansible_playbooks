@@ -1,0 +1,61 @@
+# Installs Docker and Docker compose on Ubuntu 18.04. 
+
+---
+- hosts: droplets
+  become: yes
+  vars:
+          ansible_python_interpreter: /usr/bin/python3
+          ansible_user: root
+  gather_facts: no
+  tasks:
+          - name: Install Docker Packages
+            remote_user: root
+            apt:
+                    name: "{{ item }}"
+                    state: present
+            with_items:
+                    - apt-transport-https
+                    - ca-certificates
+                    - curl
+                    - software-properties-common
+            tags:
+                    - docker
+          
+          - name: Add Docker official GPG key 
+            remote_user: root
+            apt_key:
+                   url: https://download.docker.com/linux/ubuntu/gpg
+                   id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+                   state: present
+            register: add_key
+            ignore_errors: true
+
+          - name: Add docker repository
+            remote_user: root
+            apt_repository:
+                    repo: deb https://download.docker.com/linux/ubuntu bionic stable
+                    state: present
+
+          - name: Update apt and install docker-ce
+            remote_user: root
+            apt: update_cache=yes name=docker-ce state=latest
+
+
+          - name: Install docker-Compose
+            remote_user: root
+            get_url:
+                   url: https://github.com/docker/compose/releases/download/1.25.1-rc1/docker-compose-Linux-x86_64
+                   dest: /usr/local/bin/docker-compose
+                   mode: 'u+x,g+x'
+
+          - name: Copy Docker-compose yml file
+            copy:
+                    src: ~/docker/docker-compose.yml
+                    dest: /tmp/docker-compose.yml
+
+
+          - name: Run Docker-Compose
+            remote_user: root
+            shell:
+                    chdir: /tmp
+                    cmd: docker-compose up -d 
