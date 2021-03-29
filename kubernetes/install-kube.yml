@@ -1,0 +1,55 @@
+---
+- hosts: kubeservers
+  become: true
+
+  tasks:
+    - name: Install Docker PreReqs
+      apt:
+        pkg:
+        - apt-transport-https
+        - ca-certificates
+        - software-properties-common
+        update_cache: yes
+
+    - name: Add Docker and Kubernetes Apt Key
+      apt_key:
+        url: "{{ item }}"
+        state: present
+      loop:
+        - https://download.docker.com/linux/ubuntu/gpg 
+        - https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+    - name: Add Docker and Kubernetes Repo
+      apt_repository:
+        repo: "{{ item }}"
+        state: present
+        filename: docker.list
+      loop:
+        - deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        - deb http://apt.kubernetes.io/ kubernetes-xenial main
+
+    - name: Install Docker and Kubernetes tools
+      apt:
+        pkg:
+        - docker-ce
+        - kubeadm
+        - kubelet
+        - kubectl
+        update_cache: yes
+
+    - name: Disable SWAP since Kubernetes can't work with swap enabled 
+      shell: |
+        swapoff -a
+      
+    - name: Disable SWAP in /etc/fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '#\1'
+
+    - name: Start and enable docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
