@@ -1,15 +1,18 @@
 ---
-- hosts: undead
+- hosts: kube
   become: true
 
   tasks:
+
+    - name: Check if server is in /etc/hosts
+      shell: cat /etc/hosts
+      register: etc_hosts
+
     - name: Add lines to /etc/hosts
-      blockinfile:
+      lineinfile:
         path: /etc/hosts
-        block: |
-          {{ item.ip }} {{ item.name }} {{item.alt}}
-        marker: "# {mark} Mongo Servers"
+        line: "{{ item.ip }} {{ item.name }} {{ item.alt }}"
       with_items:
         - { name: rpi1.homelab.local, ip: 192.168.10.15, alt: rpi1}
         - { name: rpi2.homelab.local, ip: 192.168.10.16, alt: rpi2 }
-        - { name: prox-1.homelab.local, ip: 192.168.10.11, alt: prox-1 }
+      when: '"rpi1.homelab.local" and "rpi2.homelab.local" not in etc_hosts.stdout'
